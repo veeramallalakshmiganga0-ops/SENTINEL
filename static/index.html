@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SENTINEL | Cybercrime Cash-Withdrawal Hotspot Prediction Engine</title>
+  
+  <!-- Google Fonts & Phosphor Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Leaflet.heat plugin -->
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- TOP NAVIGATION BAR -->
+    <header class="top-navbar">
+      <div class="nav-brand">
+        <div class="brand-badge">
+          <i class="ph-bold ph-shield-checkered"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">SENTINEL</span>
+          <span class="brand-sub">Cybercrime Cash-Withdrawal Predictive Risk & Mule Ledger System</span>
+        </div>
+      </div>
+
+      <!-- Quick City Switcher, Map Keys & Report Generator in Navbar -->
+      <div class="nav-controls">
+        <div class="city-selector-wrap">
+          <i class="ph-bold ph-map-pin"></i>
+          <select id="globalCitySelector" class="city-select">
+            <option value="">All Cities (Nationwide)</option>
+          </select>
+        </div>
+
+        <button class="btn btn-secondary btn-sm" id="btnOpenMapApiModalNav">
+          <i class="ph-bold ph-key"></i> Map API Keys
+        </button>
+
+        <button class="btn btn-report-nav" id="btnOpenExecutiveReportNav">
+          <i class="ph-bold ph-file-text"></i> Executive Dossier
+        </button>
+
+        <div class="live-status-pill">
+          <span class="pulse-dot"></span>
+          <span class="status-label">ENGINE ACTIVE (v2.0)</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- METRICS & KPI STRIP -->
+    <section class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-blue"><i class="ph-bold ph-bank"></i></div>
+        <div class="kpi-data">
+          <span class="kpi-val" id="kpiTotalAtms">--</span>
+          <span class="kpi-label">Monitored ATMs</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-purple"><i class="ph-bold ph-warning-octagon"></i></div>
+        <div class="kpi-data">
+          <span class="kpi-val" id="kpiTotalComplaints">--</span>
+          <span class="kpi-label">Cyber Complaints</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-red"><i class="ph-bold ph-money"></i></div>
+        <div class="kpi-data">
+          <span class="kpi-val" id="kpiForcedWithdrawals">--</span>
+          <span class="kpi-label">Forced Cash Drain</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-amber"><i class="ph-bold ph-receipt"></i></div>
+        <div class="kpi-data">
+          <span class="kpi-val" id="kpiTotalTransactions">--</span>
+          <span class="kpi-label">Banking TXs Ingested</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-red"><i class="ph-bold ph-fire"></i></div>
+        <div class="kpi-data">
+          <span class="kpi-val" id="kpiHighRiskHotspots">--</span>
+          <span class="kpi-label">High-Risk Hotspots</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-green"><i class="ph-bold ph-broadcast"></i></div>
+        <div class="kpi-data">
+          <span class="kpi-val" id="kpiAlertsSent">0</span>
+          <span class="kpi-label">LEA Alerts Dispatched</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUICK INTELLIGENCE PRESETS STRIP -->
+    <section class="preset-pills-bar">
+      <span class="preset-title"><i class="ph-bold ph-lightning"></i> Quick Intelligence Filters:</span>
+      <button class="preset-pill active" data-preset="all">All Data</button>
+      <button class="preset-pill" data-preset="top10"><i class="ph-bold ph-fire text-red"></i> Top 10 Critical Hotspots</button>
+      <button class="preset-pill" data-preset="forcedCash"><i class="ph-bold ph-money text-amber"></i> Forced Cash Drain Zones</button>
+      <button class="preset-pill" data-preset="highRisk"><i class="ph-bold ph-shield-warning text-red"></i> High Risk Tier (Score ≥ 7.0)</button>
+      <button class="preset-pill" data-preset="window24"><i class="ph-bold ph-clock text-blue"></i> 24h Velocity Surge</button>
+      <button class="preset-pill btn-preset-report" id="btnPresetReport"><i class="ph-bold ph-printer"></i> Generate Formal Report</button>
+    </section>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="view-tabs-bar">
+      <button class="tab-btn active" data-target="tabMap">
+        <i class="ph-bold ph-map-trifold"></i> GIS Hotspot Map
+      </button>
+      <button class="tab-btn" data-target="tabInvestigator">
+        <i class="ph-bold ph-crosshair"></i> LEA Investigator Center
+      </button>
+      <button class="tab-btn" data-target="tabTransactions">
+        <i class="ph-bold ph-receipt"></i> Transaction & Mule Ledger
+      </button>
+      <button class="tab-btn" data-target="tabComplaints">
+        <i class="ph-bold ph-shield-warning"></i> Incident Explorer
+      </button>
+      <button class="tab-btn" data-target="tabAlerts">
+        <i class="ph-bold ph-bell-ringing"></i> Alert Audit Trail <span class="badge-count" id="alertsCountBadge">0</span>
+      </button>
+      <button class="tab-btn" data-target="tabMethodology">
+        <i class="ph-bold ph-tree-structure"></i> Model & Methodology
+      </button>
+    </nav>
+
+    <!-- MAIN VIEW CONTAINER -->
+    <main class="main-content">
+
+      <!-- TAB 1: GIS MAP & HEATMAP -->
+      <div id="tabMap" class="tab-pane active">
+        <div class="map-view-wrapper">
+          <!-- Sidebar Filters -->
+          <aside class="map-sidebar">
+            <div class="sidebar-block">
+              <h3 class="sidebar-title"><i class="ph-bold ph-funnel"></i> Spatiotemporal Filters</h3>
+              
+              <div class="form-group">
+                <label for="filterCity">Target Jurisdiction (City)</label>
+                <select id="filterCity" class="form-control">
+                  <option value="">All Cities</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="filterTimeWindow">Temporal Sliding Window</label>
+                <select id="filterTimeWindow" class="form-control">
+                  <option value="all">Dynamic 24h/48h/72h Weighted</option>
+                  <option value="24">Last 24 Hours Only (W24)</option>
+                  <option value="48">Last 48 Hours Only (W48)</option>
+                  <option value="72">Last 72 Hours Only (W72)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="filterRiskLevel">Risk Classification Filter</label>
+                <select id="filterRiskLevel" class="form-control">
+                  <option value="">All Risk Tiers</option>
+                  <option value="High">High Risk Hotspots Only (Score ≥ 7)</option>
+                  <option value="Medium">Medium & High Risk (Score ≥ 3)</option>
+                  <option value="Low">Low Risk Baseline Only</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="filterBank">Bank Filter</label>
+                <select id="filterBank" class="form-control">
+                  <option value="">All Banks</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="filterRadius">Threat Search Perimeter (km): <span id="radiusVal" class="highlight-val">3.0 km</span></label>
+                <input type="range" id="filterRadius" min="1.0" max="8.0" step="0.5" value="3.0" class="range-slider">
+              </div>
+
+              <button id="btnApplyFilters" class="btn btn-primary btn-block">
+                <i class="ph-bold ph-arrow-clockwise"></i> Recalculate Risk Scores
+              </button>
+            </div>
+
+            <!-- Map Theme & Provider Selector Block -->
+            <div class="sidebar-block">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h3 class="sidebar-title" style="margin: 0;"><i class="ph-bold ph-map-trifold"></i> Map Provider & Style</h3>
+                <button class="btn btn-secondary btn-sm" id="btnOpenMapApiModalSidebar" style="padding: 2px 6px; font-size: 0.7rem;">
+                  <i class="ph-bold ph-gear"></i> Set API Keys
+                </button>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <select id="mapProviderSelect" class="form-control">
+                  <option value="carto_dark">🌙 CartoDB Dark Matter (Free - No Key)</option>
+                  <option value="esri_satellite">🛰️ Esri World Satellite (Free - No Key)</option>
+                  <option value="osm_standard">🗺️ OpenStreetMap Standard (Free - No Key)</option>
+                  <option value="carto_light">☀️ CartoDB Positron Light (Free - No Key)</option>
+                  <option value="mapbox_dark">⚡ Mapbox Custom Dark (Uses Mapbox Token)</option>
+                  <option value="mapbox_satellite">🛰️ Mapbox Satellite Streets (Uses Mapbox Token)</option>
+                  <option value="maptiler_dark">🎨 MapTiler Cyber Dark (Uses MapTiler Key)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Layer Toggles -->
+            <div class="sidebar-block">
+              <h3 class="sidebar-title"><i class="ph-bold ph-stack"></i> Map Layer Toggles</h3>
+              <label class="toggle-control">
+                <input type="checkbox" id="layerToggleAtms" checked>
+                <span class="toggle-label"><i class="ph-bold ph-radio-button text-red"></i> ATM Risk Markers</span>
+              </label>
+              <label class="toggle-control">
+                <input type="checkbox" id="layerToggleHeatmap" checked>
+                <span class="toggle-label"><i class="ph-bold ph-flame text-amber"></i> Complaint Density Heatmap</span>
+              </label>
+              <label class="toggle-control">
+                <input type="checkbox" id="layerToggleComplaints" checked>
+                <span class="toggle-label"><i class="ph-bold ph-dot text-blue"></i> Incident Location Pins</span>
+              </label>
+            </div>
+
+            <!-- Map Legend -->
+            <div class="sidebar-block legend-block">
+              <h3 class="sidebar-title"><i class="ph-bold ph-info"></i> Hotspot Threat Legend</h3>
+              <div class="legend-item"><span class="badge-dot badge-high"></span> <strong>High Risk Hotspot (Score ≥ 7.0)</strong></div>
+              <div class="legend-item"><span class="badge-dot badge-med"></span> <strong>Medium Risk (3.0 ≤ Score &lt; 7.0)</strong></div>
+              <div class="legend-item"><span class="badge-dot badge-low"></span> <strong>Low Risk Baseline (&lt; 3.0)</strong></div>
+              <div class="legend-item"><span class="badge-dot badge-incident"></span> <strong>Cyber Complaint Incident Pin</strong></div>
+            </div>
+          </aside>
+
+          <!-- Interactive Leaflet Map Container -->
+          <div class="map-pane">
+            <div id="gisMap" class="leaflet-map-container"></div>
+            <div class="map-floating-panel" id="mapFloatingPanel">
+              <span id="mapHotspotSummary">Loading GIS data...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: LEA INVESTIGATOR CENTER -->
+      <div id="tabInvestigator" class="tab-pane">
+        <!-- Threat Analytics Strip -->
+        <div class="analytics-strip">
+          <div class="analytics-card">
+            <h4><i class="ph-bold ph-chart-donut text-blue"></i> Threat Distribution</h4>
+            <div class="progress-stacked" id="threatProgressBar">
+              <div class="progress-bar-segment bg-red" id="barHighRisk" style="width: 30%;">High</div>
+              <div class="progress-bar-segment bg-amber" id="barMedRisk" style="width: 45%;">Med</div>
+              <div class="progress-bar-segment bg-green" id="barLowRisk" style="width: 25%;">Low</div>
+            </div>
+          </div>
+          <div class="analytics-card">
+            <h4><i class="ph-bold ph-fingerprint text-purple"></i> Active Fraud Typologies</h4>
+            <div class="typology-badges" id="typologyBadgesContainer">
+              <span class="code-pill">Phishing</span>
+              <span class="code-pill">SIM Swap</span>
+              <span class="code-pill">KYC Fraud</span>
+              <span class="code-pill">UPI Fraud</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-header">
+          <div>
+            <h2><i class="ph-bold ph-crosshair text-red"></i> Law Enforcement Action Center</h2>
+            <p class="panel-desc">Real-time ranked cybercrime cash-withdrawal hotspot intelligence with banking ledger correlation.</p>
+          </div>
+          <div class="panel-actions">
+            <input type="text" id="investigatorSearch" placeholder="Search ATM ID, Bank, City..." class="search-input">
+            <button class="btn btn-report" id="btnGenReportInvestigator">
+              <i class="ph-bold ph-file-pdf"></i> Generate Executive Report
+            </button>
+            <button class="btn btn-secondary" id="btnExportHotspots">
+              <i class="ph-bold ph-download-simple"></i> Export Hotspots CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="hotspotsTable">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Risk Tier</th>
+                <th>Risk Score</th>
+                <th>ATM ID</th>
+                <th>Bank</th>
+                <th>City / Coordinates</th>
+                <th>3km Complaints</th>
+                <th>Forced Cash Drains</th>
+                <th>Direct ATM TXs</th>
+                <th>Repeat Phone Links</th>
+                <th>Dominant Fraud Vectors</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="hotspotsTableBody">
+              <tr><td colspan="12" class="text-center py-4">Computing risk scores across nationwide ATMs...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: TRANSACTION & MULE LEDGER -->
+      <div id="tabTransactions" class="tab-pane">
+        <div class="panel-header">
+          <div>
+            <h2><i class="ph-bold ph-receipt text-amber"></i> Banking Transaction Ledger & Mule Account Tracing</h2>
+            <p class="panel-desc">30,000+ real-time transaction records correlated against cybercrime phone hashes and ATM withdrawal channels.</p>
+          </div>
+          <div class="panel-actions">
+            <select id="txTypeFilter" class="form-control" style="width: auto;">
+              <option value="">All Transaction Types</option>
+              <option value="ATM_WITHDRAWAL">ATM Cash Withdrawal</option>
+              <option value="UPI">UPI Transfer</option>
+              <option value="NET_BANKING">Net Banking</option>
+              <option value="NEFT">NEFT</option>
+              <option value="RTGS">RTGS</option>
+              <option value="IMPS">IMPS</option>
+              <option value="POS">POS Terminal</option>
+              <option value="CASH_DEPOSIT">Cash Deposit</option>
+            </select>
+            <label class="toggle-control" style="margin: 0;">
+              <input type="checkbox" id="filterTxFraudOnly">
+              <span class="toggle-label">Flagged Fraud Only</span>
+            </label>
+            <input type="text" id="txSearchInput" placeholder="Search Account / Phone Hash / ATM..." class="search-input">
+            <button class="btn btn-secondary" id="btnExportTransactions">
+              <i class="ph-bold ph-download-simple"></i> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="transactionsTable">
+            <thead>
+              <tr>
+                <th>Transaction ID</th>
+                <th>Timestamp</th>
+                <th>Bank & City</th>
+                <th>Account ID</th>
+                <th>Type</th>
+                <th>Amount (INR)</th>
+                <th>Direction</th>
+                <th>ATM ID</th>
+                <th>Suspect Phone Hash</th>
+                <th>Fraud Flag?</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody">
+              <tr><td colspan="10" class="text-center py-4">Loading transaction ledger records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: COMPLAINTS EXPLORER -->
+      <div id="tabComplaints" class="tab-pane">
+        <div class="panel-header">
+          <div>
+            <h2><i class="ph-bold ph-shield-warning text-purple"></i> Cybercrime Incident Repository</h2>
+            <p class="panel-desc">Anonymized dataset of 1,500+ reported cybercrime complaints with hashed identifiers and cash withdrawal flags.</p>
+          </div>
+          <div class="panel-actions">
+            <select id="complaintTypeFilter" class="form-control" style="width: auto;">
+              <option value="">All Fraud Types</option>
+            </select>
+            <label class="toggle-control" style="margin: 0;">
+              <input type="checkbox" id="filterWithdrawalOnly">
+              <span class="toggle-label">Forced Withdrawals Only</span>
+            </label>
+            <button class="btn btn-secondary" id="btnExportComplaints">
+              <i class="ph-bold ph-download-simple"></i> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="complaintsTable">
+            <thead>
+              <tr>
+                <th>Complaint ID</th>
+                <th>Timestamp</th>
+                <th>City</th>
+                <th>Fraud Type</th>
+                <th>Victim Bank Ref</th>
+                <th>Suspect Phone Hash</th>
+                <th>Forced Cash Drain?</th>
+                <th>Withdrawal ATM ID</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody id="complaintsTableBody">
+              <tr><td colspan="9" class="text-center py-4">Loading complaints repository...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 5: ALERT AUDIT TRAIL -->
+      <div id="tabAlerts" class="tab-pane">
+        <div class="panel-header">
+          <div>
+            <h2><i class="ph-bold ph-bell-ringing text-green"></i> LEA & Bank Dispatch Audit Trail</h2>
+            <p class="panel-desc">Log of all proactive notifications dispatched to Law Enforcement Agencies and Bank Vigilance teams.</p>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-secondary" id="btnExportAlerts">
+              <i class="ph-bold ph-download-simple"></i> Export Audit CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="alertsTable">
+            <thead>
+              <tr>
+                <th>Alert ID</th>
+                <th>Timestamp</th>
+                <th>ATM ID</th>
+                <th>Bank & City</th>
+                <th>Risk Level</th>
+                <th>Recipient Entity</th>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Dispatched Intelligence Payload</th>
+              </tr>
+            </thead>
+            <tbody id="alertsTableBody">
+              <tr><td colspan="9" class="text-center py-4">No alerts dispatched yet. Open an ATM from the map or investigator table to send one.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 6: METHODOLOGY & ARCHITECTURE -->
+      <div id="tabMethodology" class="tab-pane">
+        <div class="methodology-wrapper">
+          <div class="methodology-card">
+            <h2><i class="ph-bold ph-compass text-blue"></i> Framework Overview & Mathematical Formulation</h2>
+            <p>The <strong>SENTINEL</strong> prototype predicts cash-withdrawal hot zones in advance by correlating geospatial proximity, sliding temporal cybercrime complaint density, forced withdrawal flags, banking ledger cash flow anomalies, and repeat suspect telecom footprints.</p>
+
+            <div class="formula-box">
+              <h3>Hotspot Risk Scoring Formula (v2.0)</h3>
+              <p class="formula-code">
+                RiskScore(a) = [ w₂₄ · C(a, W₂₄) + w₄₈ · C(a, W₄₈) + w₇₂ · C(a, W₇₂) ] + 1.5 · C_withdrawal + 1.0 · C_repeat_suspect + 2.0 · TX_fraud + 1.5 · TX_mule_phone
+              </p>
+              <ul>
+                <li><strong>w₂₄ = 1.0, w₄₈ = 0.6, w₇₂ = 0.3</strong>: Temporal decay weights prioritizing recent velocity.</li>
+                <li><strong>C(a, W)</strong>: Count of cyber complaints within radius $R = 3.0\text{ km}$ calculated via Great-Circle Haversine distance.</li>
+                <li><strong>C_withdrawal (Weight 1.5)</strong>: Additional gravity factor when prior complaints resulted in forced mule account withdrawals at/near the ATM.</li>
+                <li><strong>C_repeat_suspect (Weight 1.0)</strong>: Repeat suspect bonus when distinct victims report identical anonymized <code>phone_hash</code> rings.</li>
+                <li><strong>TX_fraud & TX_mule_phone (Banking Corroboration)</strong>: Extra weight when ATM terminal ledger logs confirmed fraudulent withdrawals or transactions from suspect phone hashes.</li>
+              </ul>
+            </div>
+
+            <div class="grid-2-col">
+              <div class="info-box">
+                <h4><i class="ph-bold ph-shield-check"></i> Privacy & Anonymization Standard</h4>
+                <p>All sensitive information is masked or hashed:</p>
+                <ul>
+                  <li>Suspect phone numbers are hashed using irreversible cryptographic digests (<code>phone_hash</code>).</li>
+                  <li>Victim bank accounts are masked to tokenized references (e.g. <code>AC-314650</code>).</li>
+                  <li>No personal identifiable information (PII) is stored or exposed.</li>
+                </ul>
+              </div>
+
+              <div class="info-box">
+                <h4><i class="ph-bold ph-siren"></i> Proactive LEA Dispatch Protocol</h4>
+                <p>When an ATM exceeds Risk Score ≥ 7.0:</p>
+                <ul>
+                  <li>Local Police Patrol units are alerted to conduct physical checks and deter mule withdrawals.</li>
+                  <li>Bank Vigilance teams receive instant alerts to flag multi-card rapid-sequence ATM withdrawals and verify CCTV feeds.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- MAP PROVIDER & API KEYS MODAL -->
+    <div class="modal-overlay" id="mapApiModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <h3 class="text-blue"><i class="ph-bold ph-key"></i> Map API Keys & Tile Provider Settings</h3>
+          </div>
+          <button class="modal-close-btn" onclick="closeModal('mapApiModal')">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <p style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 16px;">
+            Configure your custom Mapbox or MapTiler API keys to enable HD satellite and tactical dark vector tiles. <em>(Note: CartoDB Dark Matter, Esri Satellite, and OpenStreetMap are free and work without any keys).</em>
+          </p>
+
+          <form id="mapApiForm">
+            <div class="form-group">
+              <label for="inputMapboxToken">Mapbox Public Access Token (pk.eyJ1...)</label>
+              <input type="text" id="inputMapboxToken" class="form-control" placeholder="e.g. pk.eyJ1IjoiZXhhbXBsZSIsImEiOi..." style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">
+              <small style="color: #64748b; font-size: 0.72rem;">Get a free token from <a href="https://account.mapbox.com/" target="_blank" style="color: #38bdf8;">mapbox.com</a></small>
+            </div>
+
+            <div class="form-group">
+              <label for="inputMapTilerKey">MapTiler API Key</label>
+              <input type="text" id="inputMapTilerKey" class="form-control" placeholder="e.g. abc123xyzKey..." style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">
+              <small style="color: #64748b; font-size: 0.72rem;">Get a free key from <a href="https://cloud.maptiler.com/" target="_blank" style="color: #38bdf8;">maptiler.com</a></small>
+            </div>
+
+            <div class="form-group">
+              <label for="inputGoogleMapsKey">Google Maps API Key (Optional)</label>
+              <input type="text" id="inputGoogleMapsKey" class="form-control" placeholder="e.g. AIzaSy..." style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">
+              <small style="color: #64748b; font-size: 0.72rem;">From Google Cloud Console</small>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('mapApiModal')">Cancel</button>
+          <button class="btn btn-primary" id="btnSaveMapApiKeys">
+            <i class="ph-bold ph-floppy-disk"></i> Save & Apply Keys
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXECUTIVE REPORTING & DOSSIER MODAL -->
+    <div class="modal-overlay" id="executiveReportModal">
+      <div class="modal-card modal-xl">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <h3 class="text-blue"><i class="ph-bold ph-file-text"></i> Executive Threat Intelligence Dossier</h3>
+            <span class="badge badge-risk-high" id="reportJurisdictionBadge">Nationwide Directive</span>
+          </div>
+          <div class="modal-actions-top">
+            <button class="btn btn-primary btn-sm" onclick="window.printReport()"><i class="ph-bold ph-printer"></i> Print / Save PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.downloadReportHTML()"><i class="ph-bold ph-file-html"></i> Download HTML</button>
+            <button class="modal-close-btn" onclick="closeModal('executiveReportModal')">&times;</button>
+          </div>
+        </div>
+
+        <div class="modal-body print-document-body" id="executiveReportContent">
+          <!-- Dynamically Populated Dossier -->
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('executiveReportModal')">Close</button>
+          <button class="btn btn-primary" onclick="window.printReport()">
+            <i class="ph-bold ph-printer"></i> Print Official Dossier
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORENSIC DRILLDOWN MODAL -->
+    <div class="modal-overlay" id="drilldownModal">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <h3 id="modalAtmTitle">ATM Investigation Drilldown</h3>
+            <span id="modalRiskBadge" class="badge badge-high">High Risk</span>
+          </div>
+          <div class="modal-actions-top">
+            <button class="btn btn-secondary btn-sm" id="btnExportPatrolCard" onclick="window.exportSingleAtmDossier()">
+              <i class="ph-bold ph-file-arrow-down"></i> Export Field Patrol Card
+            </button>
+            <button class="modal-close-btn" onclick="closeModal('drilldownModal')">&times;</button>
+          </div>
+        </div>
+
+        <div class="modal-body" id="modalDrilldownBody">
+          <div class="loading-spinner">Loading forensic details...</div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('drilldownModal')">Close</button>
+          <button class="btn btn-primary" id="btnOpenDispatchFromModal">
+            <i class="ph-bold ph-paper-plane-tilt"></i> Dispatch LEA / Bank Alert
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISPATCH ALERT MODAL -->
+    <div class="modal-overlay" id="dispatchAlertModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <h3><i class="ph-bold ph-bell-ringing text-amber"></i> Dispatch Hotspot Threat Alert</h3>
+          </div>
+          <button class="modal-close-btn" onclick="closeModal('dispatchAlertModal')">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <form id="dispatchAlertForm">
+            <input type="hidden" id="alertAtmId">
+
+            <div class="form-group">
+              <label>Target ATM</label>
+              <input type="text" id="alertAtmInfo" class="form-control" readonly>
+            </div>
+
+            <div class="form-group">
+              <label for="alertRecipientType">Recipient Organization</label>
+              <select id="alertRecipientType" class="form-control">
+                <option value="Local Police Station (LEA)">Local Police Station (LEA Patrol Unit)</option>
+                <option value="State Cyber Crime Division">State Cyber Crime Division</option>
+                <option value="Bank Nodal Officer / Vigilance">Bank Vigilance & ATM Security Desk</option>
+                <option value="Joint Rapid Response Team">Joint Rapid Response Taskforce</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="alertRecipientId">Designated Unit / Station ID</label>
+              <input type="text" id="alertRecipientId" class="form-control" value="PS-SECTOR-CENTRAL-01">
+            </div>
+
+            <div class="form-group">
+              <label for="alertChannel">Dispatch Gateway Channel</label>
+              <select id="alertChannel" class="form-control">
+                <option value="Automated Police SMS Gateway">Automated Police SMS Gateway</option>
+                <option value="Secure LEA REST Webhook">Secure LEA REST Webhook</option>
+                <option value="High-Priority Email Notification">High-Priority Email Notification</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="alertOfficerNote">Investigator Note / Special Instructions (Optional)</label>
+              <textarea id="alertOfficerNote" class="form-control" rows="2" placeholder="e.g. Heightened surveillance requested between 18:00 - 23:00 hrs."></textarea>
+            </div>
+
+            <div class="alert-preview-box">
+              <label>Generated Alert Message Preview:</label>
+              <div id="alertMessagePreview" class="preview-text">Selecting ATM details...</div>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('dispatchAlertModal')">Cancel</button>
+          <button class="btn btn-danger" id="btnConfirmDispatch">
+            <i class="ph-bold ph-broadcast"></i> Confirm & Send Alert
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="toast-container"></div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
